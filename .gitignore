@@ -1,0 +1,35 @@
+# ====== 1. 민감 정보 (가장 중요!) ======
+.env
+.env.local
+.env.*.local
+*.env
+
+# ====== 2. Python 가상환경 및 의존성 ======
+.venv/
+venv/
+ENV/
+env/
+bin/
+lib/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# ====== 3. Python 컴파일 캐시 및 런타임 ======
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
