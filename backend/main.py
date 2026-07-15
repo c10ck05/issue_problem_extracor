@@ -40,8 +40,7 @@ def verify_access_token(x_api_key: Optional[str] = Header(None)):
 # 내 Pages 환경 도메인들
 origins = [
     "http://localhost:8000",
-    "http://localhost:3000",
-    "https://issue-problem-extracor.pages.dev",  # Pages 기본 서브도메인
+    "http://localhost:3000", # Pages 기본 서브도메인
     "https://issue-tracker.hyunjae.co.kr",        # 개인 커스텀 도메인
 ]
 
