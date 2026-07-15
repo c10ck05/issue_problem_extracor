@@ -4,7 +4,6 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Issue Problem Extractor</title>
-<!-- 인터페이스에 최적화된 Pretendard 폰트 불러오기 -->
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
 <style>
   :root {
@@ -13,7 +12,7 @@
     --border-color: #262f40;
     --text-primary: #f3f4f6;
     --text-secondary: #9ca3af;
-    --brand-accent: #3b82f6; /* 스마트 블루 */
+    --brand-accent: #3b82f6;
     --brand-accent-glow: rgba(59, 130, 246, 0.15);
     --red-accent: #ef4444;
     --red-glow: rgba(239, 68, 68, 0.15);
@@ -78,7 +77,6 @@
     line-height: 1.5;
   }
 
-  /* 검색 영역 */
   .search-card {
     background: var(--bg-card);
     border: 1px solid var(--border-color);
@@ -143,7 +141,6 @@
     transform: none;
   }
 
-  /* 상태 영역 */
   .status-message {
     margin-top: 16px;
     font-size: 14px;
@@ -167,7 +164,6 @@
 
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  /* 결과 패널 */
   .result-panel {
     display: none;
     opacity: 0;
@@ -191,7 +187,6 @@
     padding-left: 10px;
   }
 
-  /* 📄 페이지 구분선 디자인 */
   .page-divider {
     display: flex;
     align-items: center;
@@ -225,7 +220,6 @@
     box-shadow: 0 4px 10px rgba(0,0,0,0.4);
   }
 
-  /* 카테고리 대시보드 카드 */
   .category-card {
     background: var(--bg-card);
     border: 1px solid var(--border-color);
@@ -260,7 +254,6 @@
     border: 1px solid rgba(16, 185, 129, 0.2);
   }
 
-  /* 문제점 상세 */
   .problem-item {
     background: #111622;
     border: 1px solid var(--border-color);
@@ -320,7 +313,6 @@
     color: #ffffff;
   }
 
-  /* ⚡ 스켈레톤 로딩 UI 디자인 */
   .skeleton-container {
     display: none;
     margin-top: 20px;
@@ -397,10 +389,9 @@
     <section class="result-panel" id="newsResultPanel">
       <div class="report-header" id="newsReportTitle">🔴 실시간 분석 리포트</div>
       
-      <!-- 실시간 데이터가 페이지 단위로 묶여 누적될 곳 -->
       <div id="categoryContainer"></div>
 
-      <!-- ⚡ 추가 분석 로딩 중에 뜰 스켈레톤 디자인 -->
+      <!-- 로딩 피드백용 스켈레톤 디자인 -->
       <div id="skeletonLoading" class="skeleton-container">
         <div class="skeleton-card">
           <div class="skeleton-line" style="height: 24px; width: 40%; margin-bottom: 20px;"></div>
@@ -419,7 +410,8 @@
 </div>
 
 <script>
-const API_BASE = "http://localhost:8000";
+// ⚠️ Pages 호스팅 내부의 상대 경로를 타므로, 이 상태 그대로 배포하시면 됩니다!
+const API_BASE = "/crawl"; 
 
 const keywordInput = document.getElementById('keywordInput');
 const crawlBtn = document.getElementById('crawlBtn');
@@ -445,7 +437,6 @@ function setStatus(msg, isError = false, isLoading = false) {
 function showSkeleton(show) {
   skeletonLoading.style.display = show ? 'block' : 'none';
   if (show) {
-    // 로딩이 시작되면 '더보기' 버튼 아래로 자동 포커스 스크롤
     skeletonLoading.scrollIntoView({ behavior: 'smooth', block: 'end' });
   }
 }
@@ -461,7 +452,6 @@ function escapeAttr(str) {
   return escapeHtml(str).replace(/"/g, '&quot;');
 }
 
-// 결과를 페이지 단위로 묶어서 안전하게 렌더링
 function renderCategories(data, isAppend = false) {
   if (!isAppend) {
     categoryContainer.innerHTML = '';
@@ -479,7 +469,6 @@ function renderCategories(data, isAppend = false) {
     return;
   }
 
-  // 1. 만약 추가 로드(isAppend) 상황이라면 페이지 구분선 먼저 삽입
   if (isAppend) {
     const divider = document.createElement('div');
     divider.className = 'page-divider';
@@ -487,7 +476,6 @@ function renderCategories(data, isAppend = false) {
     categoryContainer.appendChild(divider);
   }
 
-  // 2. 해당 페이지 영역용 전용 컨테이너 박스 생성
   const pageContainer = document.createElement('div');
   pageContainer.className = 'page-section-container';
 
@@ -532,16 +520,18 @@ function renderCategories(data, isAppend = false) {
     moreBtn.style.display = 'none';
   }
 
-  // 신규 추가된 페이지로 스무스하게 스크롤 이동
   if (isAppend) {
     pageContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 }
 
 async function fetchAnalysis(page) {
-  const res = await fetch(`${API_BASE}/crawl`, {
+  // 브라우저는 비밀키 탑재 없이 Pages 호스트에게만 얌전하게 요청을 전달합니다.
+  const res = await fetch(API_BASE, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 
+      'Content-Type': 'application/json'
+    },
     body: JSON.stringify({ 
       keyword: currentKeyword, 
       max_articles: 6,
@@ -589,11 +579,11 @@ async function loadMoreAnalysis() {
   moreBtn.disabled = true;
   
   setStatus(`다음 기사를 스캔하는 중...`, false, true);
-  showSkeleton(true); // ⚡ 스켈레톤 UI 켜기
+  showSkeleton(true);
 
   try {
     const data = await fetchAnalysis(currentPage);
-    showSkeleton(false); // ⚡ 스켈레톤 UI 끄기
+    showSkeleton(false);
     renderCategories(data, true); 
     setStatus(`성공적으로 PAGE ${currentPage} 데이터를 분석 및 축적했습니다.`);
   } catch (err) {
