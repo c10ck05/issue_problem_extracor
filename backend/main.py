@@ -8,7 +8,6 @@ from pydantic import BaseModel
 from openai import OpenAI
 from dotenv import load_dotenv
 
-# 기존에 잘 만들어두신 뉴스 크롤러 임포트
 from news import fetch_google_news
 
 load_dotenv()
@@ -26,7 +25,6 @@ app = FastAPI(title="Problem Extractor - Secure Backend", redirect_slashes=False
 # --------------------------------------------------
 # 🔒 보안 및 CORS 설정 (Pages 프록시와 로컬 환경만 허용)
 # --------------------------------------------------
-# Render 서비스 환경변수에 등록해둔 BACKEND_SECRET_KEY를 읽어옵니다.
 BACKEND_SECRET_KEY = os.getenv("BACKEND_SECRET_KEY", "hyunjae-super-secret-key-1234")
 
 def verify_access_token(x_api_key: Optional[str] = Header(None)):
@@ -37,16 +35,15 @@ def verify_access_token(x_api_key: Optional[str] = Header(None)):
         )
     return x_api_key
 
-# 내 Pages 환경 도메인들
 origins = [
     "http://localhost:8000",
-    "http://localhost:3000", # Pages 기본 서브도메인
-    "https://issue-tracker.hyunjae.co.kr",        # 개인 커스텀 도메인
+    "http://localhost:3000",
+    "https://issue-tracker.hyunjae.co.kr",
 ]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=["*"], #origin
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
