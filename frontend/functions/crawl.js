@@ -13,7 +13,8 @@ export async function onRequestPost(context) {
     );
   }
 
-  const backendUrl = `${targetBackend.replace(/\/$/, "")}/crawl`;
+  const cleanBase = targetBackend.trim().replace(/\/+$/, "");
+  const backendUrl = `${cleanBase}/crawl`;
 
   try {
     const response = await fetch(backendUrl, {
