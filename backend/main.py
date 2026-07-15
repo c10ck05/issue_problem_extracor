@@ -115,7 +115,8 @@ def parse_safely(raw_str: str) -> dict:
 # --------------------------------------------------
 # 🚀 안전 강화된 API 크롤링 라우트
 # --------------------------------------------------
-@app.post("/crawl", response_model=CrawlResponse)
+@app.post("/crawl", response_model=CrawlResponse, redirect_slashes=False)
+@app.post("/crawl/", response_model=CrawlResponse, include_in_schema=False)
 async def crawl(
     req: CrawlRequest, 
     token: str = Depends(verify_access_token) # 의존성 필터로 프록시 이외의 직접 호출 완전 통제
