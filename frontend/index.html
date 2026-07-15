@@ -194,30 +194,33 @@
       }
     }
 
-    async function fetchAnalysis(page) {
+  async function fetchAnalysis(page) {
       try {
+        // 불필요한 헤더나 한글 특수문자가 섞이지 않도록 Content-Type만 깔끔하게 명시합니다.
         const res = await fetch(`${API_BASE}/crawl`, {
           method: 'POST',
           headers: { 
-            'Content-Type': 'application/json',
-            'X-API-Key': BACKEND_SECRET_KEY
+            'Content-Type': 'application/json'
           },
           body: JSON.stringify({ 
             keyword: currentKeyword, 
-            max_articles: 6,
-            page: page
+            max_articles: 6, 
+            page: page 
           })
         });
 
+        if (res.status === 429) {
+          throw new Error("과도한 요청이 발생했습니다. 1분 뒤에 다시 시도해 주세요.");
+        }
+        
         if (!res.ok) {
           const errorText = await res.text();
-          throw new Error(`서버 응답 오류 (${res.status}): ${errorText}`);
+          throw new Error(`서버 에러 (${res.status}): ${errorText}`);
         }
-
+        
         return await res.json();
-
       } catch (err) {
-        alert(`데이터를 가져오는데 실패했습니다:\n${err.message}`);
+        alert(err.message);
         throw err;
       }
     }
