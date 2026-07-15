@@ -9,7 +9,7 @@
   <!-- FontAwesome (아이콘용) -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;800&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght=400;600;800&display=swap');
     body {
       font-family: 'Pretendard', sans-serif;
     }
@@ -142,14 +142,12 @@
   <!-- 앱 동작 자바스크립트 -->
   <script>
     // ==========================================
-    // [중요] 1. API 주소 및 비밀키 자동 매칭 설정
+    // 1. API 주소 및 비밀키 매칭 설정
     // ==========================================
-    // 로컬 개발 서버와 배포용 Render 서버 도메인을 자동으로 타도록 설정합니다.
     const API_BASE = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
       ? "http://localhost:8000"
       : "https://issue-problem-extracor.onrender.com";
 
-    // backend/main.py에 설정했던 ACCESS_TOKEN_SECRET_KEY와 반드시 동일한 키값을 넣어주세요.
     const BACKEND_SECRET_KEY = "내_비밀_키_값"; // ◀ Render 대시보드의 백엔드 비밀키 환경변수와 맞춰주세요.
 
     let currentKeyword = "";
@@ -204,16 +202,15 @@
     }
 
     // ==========================================
-    // [중요] 2. 백엔드 직접 연결 Fetch 함수
+    // 2. 백엔드 직접 연결 Fetch 함수
     // ==========================================
     async function fetchAnalysis(page) {
       try {
-        // 이제 중간 프록시(/crawl) 없이, 외부 Render API의 /crawl 로 직접 통신합니다.
         const res = await fetch(`${API_BASE}/crawl`, {
           method: 'POST',
           headers: { 
             'Content-Type': 'application/json',
-            'X-API-Key': BACKEND_SECRET_KEY  // 인증용 커스텀 헤더 탑재
+            'X-API-Key': BACKEND_SECRET_KEY  // 인증용 커스텀 헤더
           },
           body: JSON.stringify({ 
             keyword: currentKeyword, 
@@ -244,43 +241,70 @@
       }
     }
 
+    // ==========================================
+    // 3. UI 렌더링 함수 (에러 완벽 방어 처리)
+    // ==========================================
     function renderDashboard(data) {
-      resultDashboard.classList.remove("hidden");
-      resultTitle.innerHTML = `"${data.keyword}" <span class="font-normal text-slate-500 text-lg">에 대한 분석</span>`;
-      
-      // UI에 받아온 AI 마크다운 파싱 텍스트 적용
-      aiAnalysis.innerHTML = formatMarkdown(data.analysis);
+      // 만약 백엔드에서 준 데이터 자체가 없으면 조기 종료시킵니다.
+      if (!data) {
+        alert("백엔드로부터 데이터를 받지 못했습니다.");
+        return;
+      }
 
-      // 페이지 인디케이터 표시 
-      pageIndicator.textContent = `${currentPage} / ${currentPage + 1}`; // 백엔드가 다음이 있는지 모르므로 유연한 표시
+      resultDashboard.classList.remove("hidden");
+      
+      // 안전하게 keyword를 읽어옵니다. (없으면 기본값 적용)
+      const keyword = data.keyword || currentKeyword || "알 수 없음";
+      resultTitle.innerHTML = `"${keyword}" <span class="font-normal text-slate-500 text-lg">에 대한 분석</span>`;
+      
+      // [오류 수정 핵심] 데이터 구조에서 가드 적용 (?.)
+      // 만약 data.analysis가 객체이고 그 안에 다른 프로퍼티가 담겨있든, 단순 텍스트이든 안전하게 파싱합니다.
+      let rawAnalysis = "";
+      if (typeof data.analysis === "object" && data.analysis !== null) {
+        rawAnalysis = data.analysis.text || data.analysis.content || JSON.stringify(data.analysis);
+      } else {
+        rawAnalysis = data.analysis || "AI 요약 결과를 가져오지 못했습니다.";
+      }
+      
+      aiAnalysis.innerHTML = formatMarkdown(rawAnalysis);
+
+      // 페이지 표시부
+      pageIndicator.textContent = `${currentPage} / ${currentPage + 1}`;
       prevBtn.disabled = currentPage === 1;
 
       // 뉴스 기사 카드 바인딩
       newsGrid.innerHTML = "";
-      if (!data.articles || data.articles.length === 0) {
+      const articles = data.articles || [];
+      
+      if (articles.length === 0) {
         newsGrid.innerHTML = `<div class="col-span-full py-8 text-center text-slate-400 text-sm">수집된 기사가 없습니다.</div>`;
         return;
       }
 
-      data.articles.forEach(art => {
+      articles.forEach(art => {
+        if (!art) return; // 유효하지 않은 기사 데이터 패스
+        
+        const press = art.press || '언론사 정보 없음';
+        const dateStr = art.date || '일자 미상';
+        const title = art.title || '제목 없음';
+        const url = art.url || '#';
+        const summary = art.summary || '본문 요약 요약 정보가 존재하지 않습니다.';
+
         const card = document.createElement("div");
         card.className = "bg-white border border-slate-200 rounded-2xl p-5 hover:shadow-md transition-all flex flex-col justify-between";
-        
-        // 날짜가 없거나 빈 값이면 처리
-        const dateStr = art.date ? art.date : '일자 미상';
         
         card.innerHTML = `
           <div>
             <div class="flex items-center justify-between text-xs text-slate-400 mb-2">
-              <span class="font-semibold text-slate-600 px-2 py-0.5 bg-slate-100 rounded">${art.press}</span>
+              <span class="font-semibold text-slate-600 px-2 py-0.5 bg-slate-100 rounded">${press}</span>
               <span>${dateStr}</span>
             </div>
             <h4 class="font-bold text-slate-900 mb-2 line-clamp-2 hover:text-indigo-600 transition-colors">
-              <a href="${art.url}" target="_blank" rel="noopener noreferrer">${art.title}</a>
+              <a href="${url}" target="_blank" rel="noopener noreferrer">${title}</a>
             </h4>
-            <p class="text-slate-500 text-xs leading-relaxed line-clamp-3 mb-4">${art.summary}</p>
+            <p class="text-slate-500 text-xs leading-relaxed line-clamp-3 mb-4">${summary}</p>
           </div>
-          <a href="${art.url}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center text-xs font-semibold text-indigo-600 hover:text-indigo-700 hover:underline mt-2">
+          <a href="${url}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center text-xs font-semibold text-indigo-600 hover:text-indigo-700 hover:underline mt-2">
             <span>기사 원문 보기</span>
             <i class="fa-solid fa-arrow-up-right-from-square ml-1 text-[10px]"></i>
           </a>
