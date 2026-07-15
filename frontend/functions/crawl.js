@@ -1,12 +1,8 @@
 export async function onRequestPost(context) {
   const { request, env } = context;
 
-  // 1. 브라우저가 보낸 바디 데이터(keyword, page 등) 읽기
   const requestBody = await request.text();
 
-  // 2. Cloudflare Pages 대시보드에 입력해 둔 환경변수 꺼내기
-  // - env.RENDER_BACKEND_URL 예시: https://your-backend.onrender.com
-  // - env.BACKEND_SECRET_KEY 예시: hyunjae-super-secret-key-1234
   const targetBackend = env.RENDER_BACKEND_URL;
   const secretKey = env.BACKEND_SECRET_KEY;
 
@@ -17,16 +13,14 @@ export async function onRequestPost(context) {
     );
   }
 
-  // 진짜 Render 백엔드 주소 조립
   const backendUrl = `${targetBackend.replace(/\/$/, "")}/crawl`;
 
   try {
-    // 3. 진짜 Render 백엔드로 안전하게 대리 요청 전송
     const response = await fetch(backendUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "X-API-Key": secretKey, // ◀ 사용자는 절대 볼 수 없는 서버 안에서의 보안 키 탑재!
+        "X-API-Key": secretKey,
       },
       body: requestBody,
     });
