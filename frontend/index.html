@@ -37,7 +37,7 @@
         네이버 뉴스 실시간 <span class="text-indigo-600">문제점 분석기</span>
       </h1>
       <p class="text-slate-500 text-sm md:text-base max-w-lg mx-auto">
-        검색 키워드를 기반으로 네이버 뉴스를 크롤링하고,<br>인공지능을 통해 핵심 사회적 쟁점과 문제점을 요약해 드립니다.
+        검색 키워드를 기반으로 뉴스를 크롤링하고,<br>인공지능을 통해 핵심 사회적 쟁점과 문제점을 요약해 드립니다.
       </p>
     </div>
 
@@ -56,7 +56,7 @@
         </div>
         <button 
           type="submit" 
-          class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-8 py-3.5 rounded-2xl shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-all flex items-center justify-center space-x-2"
+          class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-8 py-3.5 rounded-2xl shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-base transition-all flex items-center justify-center space-x-2"
         >
           <i class="fa-solid fa-wand-magic-sparkles"></i>
           <span>분석하기</span>
@@ -64,7 +64,7 @@
       </form>
     </div>
 
-    <!-- 로딩 상태 스피너 (기본 숨김) -->
+    <!-- 로딩 상태 스피너 -->
     <div id="loadingState" class="hidden text-center py-20">
       <div class="inline-flex items-center justify-center p-0.5 mb-2 mr-2 overflow-hidden text-sm font-medium text-gray-900 rounded-lg group">
         <svg class="animate-spin h-10 w-10 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -76,7 +76,7 @@
       <p class="text-slate-400 text-xs mt-2">약 10초 ~ 15초 정도 소요될 수 있습니다. 잠시만 기다려 주세요.</p>
     </div>
 
-    <!-- 결과 대시보드 (기본 숨김) -->
+    <!-- 결과 대시보드 -->
     <div id="resultDashboard" class="hidden space-y-8">
       
       <!-- 키워드 헤더 -->
@@ -111,9 +111,7 @@
           <h3 class="text-xl font-bold mb-4 flex items-center space-x-2">
             <span>주요 쟁점 및 발생 문제점 요약</span>
           </h3>
-          <div id="aiAnalysis" class="prose prose-invert text-slate-100 max-w-none text-sm md:text-base leading-relaxed space-y-3 whitespace-pre-wrap">
-            <!-- AI 요약 내용이 출력되는 공간 -->
-          </div>
+          <div id="aiAnalysis" class="prose prose-invert text-slate-100 max-w-none text-sm md:text-base leading-relaxed space-y-3 whitespace-pre-wrap"></div>
         </div>
       </div>
 
@@ -123,9 +121,7 @@
           <i class="fa-solid fa-list-check text-indigo-600"></i>
           <span>분석 대상 수집 기사 목록</span>
         </h3>
-        <div id="newsGrid" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <!-- 기사 리스트가 카드 형태로 출력되는 공간 -->
-        </div>
+        <div id="newsGrid" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
       </div>
 
     </div>
@@ -135,20 +131,17 @@
   <!-- 푸터 -->
   <footer class="bg-white border-t border-slate-200 mt-12 py-6">
     <div class="max-w-5xl mx-auto px-4 text-center text-xs text-slate-400">
-      <p>© 2026 Issue Finder. Powered by FastAPI, Cloudflare Pages & Google Gemini AI.</p>
+      <p>© 2026 Issue Finder. Powered by FastAPI, Cloudflare Pages & Groq AI.</p>
     </div>
   </footer>
 
-  <!-- 앱 동작 자바스크립트 -->
   <script>
-    // ==========================================
-    // 1. API 주소 및 비밀키 매칭 설정
-    // ==========================================
+    // 1. API 기본 설정
     const API_BASE = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
       ? "http://localhost:8000"
       : "https://issue-problem-extracor.onrender.com";
 
-    const BACKEND_SECRET_KEY = "내_비밀_키_값"; // ◀ Render 대시보드의 백엔드 비밀키 환경변수와 맞춰주세요.
+    const BACKEND_SECRET_KEY = "내_비밀_키_값"; // ◀ Render 대시보드 환경변수 세팅값과 연동
 
     let currentKeyword = "";
     let currentPage = 1;
@@ -201,16 +194,13 @@
       }
     }
 
-    // ==========================================
-    // 2. 백엔드 직접 연결 Fetch 함수
-    // ==========================================
     async function fetchAnalysis(page) {
       try {
         const res = await fetch(`${API_BASE}/crawl`, {
           method: 'POST',
           headers: { 
             'Content-Type': 'application/json',
-            'X-API-Key': BACKEND_SECRET_KEY  // 인증용 커스텀 헤더
+            'X-API-Key': BACKEND_SECRET_KEY
           },
           body: JSON.stringify({ 
             keyword: currentKeyword, 
@@ -241,24 +231,19 @@
       }
     }
 
-    // ==========================================
-    // 3. UI 렌더링 함수 (에러 완벽 방어 처리)
-    // ==========================================
+    // 3. UI 렌더링 기능 (데이터 필드 교정 완료)
     function renderDashboard(data) {
-      // 만약 백엔드에서 준 데이터 자체가 없으면 조기 종료시킵니다.
       if (!data) {
-        alert("백엔드로부터 데이터를 받지 못했습니다.");
+        alert("백엔드로부터 전달받은 데이터가 없습니다.");
         return;
       }
 
       resultDashboard.classList.remove("hidden");
       
-      // 안전하게 keyword를 읽어옵니다. (없으면 기본값 적용)
       const keyword = data.keyword || currentKeyword || "알 수 없음";
       resultTitle.innerHTML = `"${keyword}" <span class="font-normal text-slate-500 text-lg">에 대한 분석</span>`;
       
-      // [오류 수정 핵심] 데이터 구조에서 가드 적용 (?.)
-      // 만약 data.analysis가 객체이고 그 안에 다른 프로퍼티가 담겨있든, 단순 텍스트이든 안전하게 파싱합니다.
+      // AI 데이터 포맷 안전 가드 적용
       let rawAnalysis = "";
       if (typeof data.analysis === "object" && data.analysis !== null) {
         rawAnalysis = data.analysis.text || data.analysis.content || JSON.stringify(data.analysis);
@@ -267,12 +252,9 @@
       }
       
       aiAnalysis.innerHTML = formatMarkdown(rawAnalysis);
-
-      // 페이지 표시부
       pageIndicator.textContent = `${currentPage} / ${currentPage + 1}`;
       prevBtn.disabled = currentPage === 1;
 
-      // 뉴스 기사 카드 바인딩
       newsGrid.innerHTML = "";
       const articles = data.articles || [];
       
@@ -282,13 +264,14 @@
       }
 
       articles.forEach(art => {
-        if (!art) return; // 유효하지 않은 기사 데이터 패스
+        if (!art) return;
         
-        const press = art.press || '언론사 정보 없음';
-        const dateStr = art.date || '일자 미상';
+        // ✅ 백엔드 news.py 구조 명칭과 매칭 연동 수정 완료 (source -> press / link -> url / published -> date)
+        const press = art.source || '언론사 정보 없음';
+        const dateStr = art.published || '일자 미상';
         const title = art.title || '제목 없음';
-        const url = art.url || '#';
-        const summary = art.summary || '본문 요약 요약 정보가 존재하지 않습니다.';
+        const url = art.link || '#';
+        const summary = art.summary || '본문 요약 정보가 존재하지 않습니다.';
 
         const card = document.createElement("div");
         card.className = "bg-white border border-slate-200 rounded-2xl p-5 hover:shadow-md transition-all flex flex-col justify-between";
@@ -313,14 +296,13 @@
       });
     }
 
-    // 간단한 마크다운 문법 변환 유틸리티 함수
     function formatMarkdown(text) {
       if (!text) return "분석 데이터가 존재하지 않습니다.";
       return text
-        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // 볼드체 변환
-        .replace(/\*(.*?)\*/g, '<em>$1</em>')            // 이탤릭체 변환
-        .replace(/^- (.*$)/gim, '<li class="ml-4 list-disc">$1</li>') // 리스트 처리
-        .replace(/\n/g, '<br>');                           // 줄바꿈 보존
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+        .replace(/^- (.*$)/gim, '<li class="ml-4 list-disc">$1</li>')
+        .replace(/\n/g, '<br>');
     }
   </script>
 </body>

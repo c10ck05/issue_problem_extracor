@@ -2,185 +2,113 @@ import json
 import os
 import re
 from typing import Optional
-from fastapi import FastAPI, HTTPException, Header, Depends
+from fastapi import FastAPI, HTTPException, Header, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from openai import OpenAI
 from dotenv import load_dotenv
+
+# ✅ Rate Limit(무지성 호출 방어) 라이브러리 도입
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
 from news import fetch_google_news
 
 load_dotenv()
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+
+if not GROQ_API_KEY:
+    raise RuntimeError("GROQ_API_KEY 없음 (.env 확인)")
+
 client = OpenAI(
-    api_key=GROQ_API_KEY or "DUMMY_KEY_FOR_STARTUP",
+    api_key=GROQ_API_KEY,
     base_url="https://api.groq.com/openai/v1",
 )
 
 MODEL = "openai/gpt-oss-120b"
 
-app = FastAPI(title="Problem Extractor - Secure Backend", redirect_slashes=False)
+# ✅ 1. Rate Limit 설정 (IP 주소 기준으로 제한)
+limiter = Limiter(key_func=get_remote_address)
+app = FastAPI(redirect_slashes=False)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-# --------------------------------------------------
-# 🔒 보안 및 CORS 설정 (Pages 프록시와 로컬 환경만 허용)
-# --------------------------------------------------
-BACKEND_SECRET_KEY = os.getenv("BACKEND_SECRET_KEY", "hyunjae-super-secret-key-1234")
-
-def verify_access_token(x_api_key: Optional[str] = Header(None)):
-    if x_api_key != BACKEND_SECRET_KEY:
-        raise HTTPException(
-            status_code=401, 
-            detail="인증되지 않은 사용자입니다. 백엔드 보안 키 검증에 실패했습니다."
-        )
-    return x_api_key
-
+# ✅ 2. CORS 도메인 잠금 (보안 핵심)
+# "*" 대신 실제 접속을 허용할 프론트엔드 주소만 적어줍니다.
 origins = [
+    "http://localhost:5500",
+    "http://127.0.0.1:5500",
     "http://localhost:8000",
-    "http://localhost:3000",
-    "https://issue-tracker.hyunjae.co.kr",
+    "http://127.0.0.1:8000",
+    # "https://내-클라우드플레어-페이지-주소.pages.dev" ◀ 배포 후 여기에 프론트 주소 꼭 추가하세요!
 ]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], #origin
+    allow_origins=origins, 
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["POST", "GET"], # 필요한 메서드만 허용
     allow_headers=["*"],
 )
 
-# --------------------------------------------------
-# 📌 데이터 스키마 및 프롬프트 정의
-# --------------------------------------------------
 class CrawlRequest(BaseModel):
     keyword: str
     max_articles: int = 6
     page: int = 1
 
-class CrawlResponse(BaseModel):
-    keyword: str
-    article_count: int
-    categories: list
-
-COMPACT_PROMPT = """
-Analyze these news articles about "{keyword}" and summarize the major problems reported.
-Return a clean, valid JSON object following the format below.
-
-RULES:
-- Extract 1 to 3 distinct problem categories.
-- For each category, list 1 to 2 detailed problems.
-- Ensure all text is written in Korean (한국어).
-- Do not use raw double-quotes inside the strings. Use single-quotes instead.
-- Do not use any markdown backticks or extra text. Output ONLY JSON.
-
-JSON FORMAT:
-{{
-  "categories": [
-    {{
-      "category": "분류 (예: 제도적 한계 / 보건·복지)",
-      "problems": [
-        {{
-          "title": "핵심 문제 한 줄 요약",
-          "description": "문제가 발생한 상세한 배경 및 설명"
-        }}
-      ]
-    }}
-  ]
-}}
-
-ARTICLES:
-{articles_data}
-"""
-
-def parse_safely(raw_str: str) -> dict:
-    text = raw_str.strip()
-    if "```" in text:
-        text = re.sub(r"^```(?:json)?\s*", "", text)
-        text = re.sub(r"\s*```$", "", text)
-        text = text.strip()
-    text = text.replace("\\'", "'").replace("\n", " ").replace("\t", " ")
-    try:
-        return json.loads(text)
-    except Exception:
-        try:
-            if text.count('{') > text.count('}'):
-                text += '}' * (text.count('{') - text.count('}'))
-            return json.loads(text)
-        except Exception:
-            return {"categories": []}
-
-# --------------------------------------------------
-# 🚀 안전 강화된 API 크롤링 라우트
-# --------------------------------------------------
-@app.post("/crawl", response_model=CrawlResponse)
-async def crawl(
-    req: CrawlRequest, 
-    token: str = Depends(verify_access_token)
-):
-    # (내부 함수 내용은 그대로 유지)
+# ✅ 3. 무지성 연타 방어 적용 ("1분에 최대 5번만 호출 가능")
+@app.post("/crawl")
+@limiter.limit("5/minute")
+async def crawl(req: CrawlRequest, request: Request):  # slowapi 규칙상 request: Request 필수
     keyword = req.keyword.strip()
     if not keyword:
-        raise HTTPException(status_code=400, detail="키워드 입력이 필요합니다.")
+        raise HTTPException(status_code=400, detail="키워드 필요")
 
-    fetch_limit = req.max_articles * req.page
     try:
-        all_articles = fetch_google_news(keyword, fetch_limit)
+        all_articles = fetch_google_news(keyword, req.max_articles * req.page)
     except Exception as e:
-        raise HTTPException(status_code=502, detail=f"뉴스 수집 실패: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
-    if not all_articles:
-        raise HTTPException(status_code=404, detail="검색된 뉴스가 없습니다.")
-
-    start_idx = req.max_articles * (req.page - 1)
-    page_articles = all_articles[start_idx : start_idx + req.max_articles]
+    start = (req.page - 1) * req.max_articles
+    page_articles = all_articles[start:start + req.max_articles]
 
     if not page_articles:
-        return {"keyword": keyword, "article_count": 0, "categories": []}
+        return {
+            "keyword": keyword,
+            "analysis": "분석할 뉴스 기사가 존재하지 않습니다.",
+            "articles": []
+        }
 
-    articles_payload = []
-    for idx, art in enumerate(page_articles):
-        articles_payload.append({
-            "title": art["title"].replace('"', "'"),
-            "summary": (art["summary"] or "요약 없음").replace('"', "'")
-        })
-
-    prompt = COMPACT_PROMPT.format(
-        keyword=keyword,
-        articles_data=json.dumps(articles_payload, ensure_ascii=False)
+    articles_text = "\n".join(
+        [f"- {a['title']} ({a['summary']})" for a in page_articles]
     )
 
+    prompt = f"""
+다음 뉴스들을 보고 핵심 문제를 한국어로 요약해줘:
+
+{articles_text}
+
+간결하게 핵심만 정리해줘.
+"""
+
     try:
-        response = client.chat.completions.create(
+        res = client.chat.completions.create(
             model=MODEL,
             messages=[{"role": "user", "content": prompt}],
-            temperature=0.1,  
-            max_tokens=1500
+            temperature=0.3,
         )
-        raw_output = response.choices[0].message.content
-        result = parse_safely(raw_output)
-    except Exception as e:
-        return {"keyword": keyword, "article_count": len(page_articles), "categories": []}
-
-    categories = result.get("categories", [])
-    if not categories:
-        categories = [{
-            "category": "주요 보도 내용",
-            "problems": [{
-                "title": f"'{keyword}' 관련 최근 현안 발생",
-                "description": "최근 관련 보도와 갈등 요인들이 지속해서 보고되고 있습니다. 원본 뉴스를 통해 자세한 내용을 확인해 주세요."
-            }]
-        }]
-
-    for cat in categories:
-        for prob in cat.get("problems", []):
-            prob["sources"] = [{"title": art["title"], "link": art["link"]} for art in page_articles[:3]]
+        analysis = res.choices[0].message.content
+    except:
+        analysis = "AI 분석에 실패했습니다."
 
     return {
         "keyword": keyword,
-        "article_count": len(page_articles),
-        "categories": categories
+        "analysis": analysis,
+        "articles": page_articles
     }
 
 @app.get("/")
 def root():
-    return {"msg": "Problem Extractor API - Rock Solid Security Active"}
+    return {"msg": "API OK"}
