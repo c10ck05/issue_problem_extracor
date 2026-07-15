@@ -3,148 +3,127 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>네이버 뉴스 문제점 분석기</title>
+  <title>네이버 뉴스 쟁점 분석기</title>
   
-  <!-- ✅ 프로덕션용 고성능 Tailwind CSS 스타일시트로 변경 (경고 제거) -->
+  <!-- 고성능 Tailwind CSS -->
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-  
-  <!-- FontAwesome (아이콘용) -->
+  <!-- FontAwesome (아이콘) -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght=400;600;800&display=swap');
-    body { font-family: 'Pretendard', sans-serif; }
-    /* line-clamp 라이브러리 미적용 대비 보완 스타일 */
+    @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght=400;500;600;700;800&display=swap');
+    body { font-family: 'Pretendard', sans-serif; background-color: #f8fafc; }
     .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
     .line-clamp-3 { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
   </style>
 </head>
-<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+<body class="text-slate-900 min-h-screen flex flex-col">
 
-  <!-- 네비게이션 바 -->
-  <nav class="bg-white border-b border-slate-200 sticky top-0 z-50">
-    <div class="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
-      <div class="flex items-center space-x-2">
-        <i class="fa-solid fa-magnifying-glass-chart text-indigo-600 text-2xl"></i>
-        <span class="text-xl font-extrabold tracking-tight text-slate-900">Issue Finder</span>
+  <!-- 상단 네비게이션 -->
+  <nav class="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
+    <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="bg-indigo-600 text-white p-2 rounded-xl">
+          <i class="fa-solid fa-layer-group text-lg"></i>
+        </div>
+        <span class="text-xl font-bold tracking-tight text-gray-900">Issue Insight</span>
       </div>
-      <span class="text-xs font-semibold px-2.5 py-1 bg-indigo-50 text-indigo-700 rounded-full">v1.2 Live</span>
+      <span class="text-xs font-medium px-3 py-1 bg-indigo-50 text-indigo-600 rounded-full border border-indigo-100">Categorized v1.5</span>
     </div>
   </nav>
 
-  <!-- 메인 콘텐츠 영역 -->
-  <main class="flex-grow max-w-5xl w-full mx-auto px-4 py-8">
+  <!-- 메인 영역 -->
+  <main class="flex-grow max-w-6xl w-full mx-auto px-4 py-10">
     
-    <!-- 헤더 섹션 -->
-    <div class="text-center mb-10">
-      <h1 class="text-3xl md:text-4xl font-extrabold text-slate-900 mb-3 tracking-tight">
-        네이버 뉴스 실시간 <span class="text-indigo-600">문제점 분석기</span>
+    <!-- 타이틀 -->
+    <div class="text-center mb-12">
+      <h1 class="text-3xl md:text-4xl font-extrabold text-gray-900 mb-4 tracking-tight">
+        실시간 뉴스 <span class="text-indigo-600">문제점 분류 분석기</span>
       </h1>
-      <p class="text-slate-500 text-sm md:text-base max-w-lg mx-auto">
-        검색 키워드를 기반으로 뉴스를 크롤링하고,<br>인공지능을 통해 핵심 사회적 쟁점과 문제점을 요약해 드립니다.
+      <p class="text-gray-500 text-sm md:text-base max-w-xl mx-auto leading-relaxed">
+        검색된 실시간 뉴스 내에서 발생하고 있는 핵심 사회적 문제점과 쟁점들을 
+        AI가 기준별로 자동 분류하여 구조화된 리포트를 제공합니다.
       </p>
     </div>
 
-    <!-- 검색 바 -->
-    <div class="max-w-2xl mx-auto mb-12">
-      <form id="searchForm" class="flex flex-col sm:flex-row gap-2">
-        <div class="relative flex-grow">
-          <i class="fa-solid fa-keyboard absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
-          <input 
-            type="text" 
-            id="keywordInput" 
-            placeholder="예: 청년 실업, 전세 사기, 저출생 대책" 
-            required
-            class="w-full pl-11 pr-4 py-3.5 bg-white border border-slate-300 rounded-2xl shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-base transition-all placeholder:text-slate-400"
-          >
+    <!-- 검색창 -->
+    <div class="max-w-2xl mx-auto mb-16">
+      <form id="searchForm" class="flex flex-col sm:flex-row gap-3">
+        <div class="relative flex-grow shadow-sm rounded-2xl">
+          <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+          <input type="text" id="keywordInput" placeholder="분석할 사회 이슈 키워드를 입력하세요" required class="w-full pl-12 pr-4 py-4 bg-white border border-gray-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-base transition-all">
         </div>
-        <button 
-          type="submit" 
-          class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-8 py-3.5 rounded-2xl shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-base transition-all flex items-center justify-center space-x-2"
-        >
+        <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-8 py-4 rounded-2xl shadow-md transition-all flex items-center justify-center space-x-2 whitespace-nowrap">
           <i class="fa-solid fa-wand-magic-sparkles"></i>
-          <span>분석하기</span>
+          <span>쟁점 분류하기</span>
         </button>
       </form>
     </div>
 
-    <!-- 로딩 상태 스피너 -->
-    <div id="loadingState" class="hidden text-center py-20">
-      <div class="inline-flex items-center justify-center p-0.5 mb-2 mr-2 overflow-hidden text-sm font-medium text-gray-900 rounded-lg group">
-        <svg class="animate-spin h-10 w-10 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-        </svg>
-      </div>
-      <p class="text-indigo-600 font-semibold text-lg mt-4">뉴스를 수집하여 AI로 분석하고 있습니다...</p>
-      <p class="text-slate-400 text-xs mt-2">약 10초 ~ 15초 정도 소요될 수 있습니다. 잠시만 기다려 주세요.</p>
+    <!-- 로딩화면 -->
+    <div id="loadingState" class="hidden text-center py-24 bg-white rounded-3xl border border-gray-200 shadow-sm max-w-3xl mx-auto">
+      <div class="animate-spin rounded-full h-12 w-12 border-4 border-indigo-600 border-t-transparent inline-block"></div>
+      <p class="text-gray-900 font-bold text-xl mt-6">뉴스를 크롤링하여 쟁점별로 분류 중입니다...</p>
+      <p class="text-gray-400 text-sm mt-2 px-6">문맥 분석과 다중 문서 요약이 진행되므로 최대 15초가 소요될 수 있습니다.</p>
     </div>
 
-    <!-- 결과 대시보드 -->
-    <div id="resultDashboard" class="hidden space-y-8">
+    <!-- 대시보드 리포트 (결과창) -->
+    <div id="resultDashboard" class="hidden space-y-10">
       
-      <!-- 키워드 헤더 -->
-      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-slate-200 pb-4">
+      <!-- 상단 리포트 헤더 컨트롤러 -->
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between border-b border-gray-200 pb-5">
         <div>
-          <span class="text-xs font-bold tracking-wider text-indigo-600 uppercase">Search Results</span>
-          <h2 id="resultTitle" class="text-2xl font-extrabold text-slate-900 mt-1">"키워드" 분석 리포트</h2>
+          <span class="text-xs font-bold tracking-wider text-indigo-600 uppercase bg-indigo-50 px-2.5 py-1 rounded">Analysis Report</span>
+          <h2 id="resultTitle" class="text-2xl font-extrabold text-gray-950 mt-2">"키워드" 분석 브리핑</h2>
         </div>
-        <div id="pagination" class="flex items-center space-x-2 mt-4 sm:mt-0">
-          <button id="prevBtn" class="px-4 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-semibold rounded-xl transition-all disabled:opacity-50 disabled:pointer-events-none shadow-sm flex items-center space-x-1">
-            <i class="fa-solid fa-chevron-left text-xs"></i>
-            <span>이전 페이지</span>
+        
+        <!-- 페이지네이션 -->
+        <div id="pagination" class="flex items-center space-x-2 mt-4 md:mt-0 bg-white p-1.5 rounded-xl border border-gray-200 shadow-sm">
+          <button id="prevBtn" class="px-3 py-2 text-gray-700 hover:bg-gray-50 rounded-lg text-sm font-semibold transition-all disabled:opacity-40 flex items-center space-x-1">
+            <i class="fa-solid fa-chevron-left text-xs"></i> <span>이전</span>
           </button>
-          <span id="pageIndicator" class="text-sm font-bold text-slate-600 px-3 py-1.5 bg-slate-100 rounded-lg">1 / -</span>
-          <button id="nextBtn" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl transition-all disabled:opacity-50 disabled:pointer-events-none shadow-sm flex items-center space-x-1">
-            <span>다음 페이지</span>
-            <i class="fa-solid fa-chevron-right text-xs"></i>
+          <span id="pageIndicator" class="text-xs font-bold text-gray-600 px-3 py-1.5 bg-gray-100 rounded-md">1 페이지</span>
+          <button id="nextBtn" class="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-semibold transition-all disabled:opacity-40 flex items-center space-x-1">
+            <span>다음 묶음</span> <i class="fa-solid fa-chevron-right text-xs"></i>
           </button>
         </div>
       </div>
 
-      <!-- AI 분석 결과 카드 -->
-      <div class="bg-gradient-to-br from-indigo-900 to-slate-900 rounded-3xl p-6 md:p-8 text-white shadow-xl relative overflow-hidden">
-        <div class="absolute right-0 top-0 opacity-10 translate-x-12 -translate-y-12">
-          <i class="fa-solid fa-brain text-[200px]"></i>
+      <!-- [파트 1] AI 핵심 요약 요약문 요약 -->
+      <div class="bg-white border border-gray-200 rounded-3xl shadow-sm overflow-hidden">
+        <div class="bg-slate-900 px-6 py-4 flex items-center space-x-2 text-white">
+          <i class="fa-solid fa-square-poll-horizontal text-indigo-400"></i>
+          <span class="font-bold text-sm tracking-wide">AI 종합 문제점 진단 요약</span>
         </div>
-        <div class="relative z-10">
-          <div class="flex items-center space-x-2 text-indigo-300 text-xs font-bold tracking-widest uppercase mb-4">
-            <i class="fa-solid fa-sparkles"></i>
-            <span>AI CORE INSIGHT</span>
-          </div>
-          <h3 class="text-xl font-bold mb-4 flex items-center space-x-2">
-            <span>주요 쟁점 및 발생 문제점 요약</span>
-          </h3>
-          <div id="aiAnalysis" class="prose prose-invert text-slate-100 max-w-none text-sm md:text-base leading-relaxed space-y-3 whitespace-pre-wrap"></div>
+        <div class="p-6 md:p-8">
+          <div id="aiAnalysis" class="text-gray-700 text-base leading-relaxed space-y-2 whitespace-pre-wrap"></div>
         </div>
       </div>
 
-      <!-- 수집된 원본 뉴스 그리드 -->
+      <!-- [파트 2] 문제점 기준 분류 그리드 레이아웃 (개편 핵심) -->
       <div>
-        <h3 class="text-lg font-bold text-slate-900 mb-4 flex items-center space-x-2">
-          <i class="fa-solid fa-list-check text-indigo-600"></i>
-          <span>분석 대상 수집 기사 목록</span>
-        </h3>
-        <div id="newsGrid" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+        <div class="flex items-center space-x-2 mb-6">
+          <div class="w-1 h-5 bg-indigo-600 rounded-full"></div>
+          <h3 class="text-xl font-bold text-gray-900">이슈 내 발견된 문제점별 분류</h3>
+        </div>
+        
+        <!-- 동적으로 문제점 카테고리가 생성되어 들어갈 구역 -->
+        <div id="categoryContainer" class="space-y-8"></div>
       </div>
 
     </div>
-
   </main>
 
-  <!-- 푸터 -->
-  <footer class="bg-white border-t border-slate-200 mt-12 py-6">
-    <div class="max-w-5xl mx-auto px-4 text-center text-xs text-slate-400">
-      <p>© 2026 Issue Finder. Powered by FastAPI, Cloudflare Pages & Groq AI.</p>
+  <footer class="bg-white border-t border-gray-200 mt-20 py-6">
+    <div class="max-w-6xl mx-auto px-4 text-center text-xs text-gray-400">
+      <p>© 2026 Issue Insight. 구조화 분류 모델 적용 완료.</p>
     </div>
   </footer>
 
   <script>
-    // 1. API 기본 설정
     const API_BASE = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
       ? "http://localhost:8000"
       : "https://issue-problem-extracor.onrender.com";
-
-    const BACKEND_SECRET_KEY = "내_비밀_키_값"; // ◀ Render 대시보드 환경변수 세팅값과 연동
 
     let currentKeyword = "";
     let currentPage = 1;
@@ -155,7 +134,7 @@
     const resultDashboard = document.getElementById("resultDashboard");
     const resultTitle = document.getElementById("resultTitle");
     const aiAnalysis = document.getElementById("aiAnalysis");
-    const newsGrid = document.getElementById("newsGrid");
+    const categoryContainer = document.getElementById("categoryContainer");
     
     const prevBtn = document.getElementById("prevBtn");
     const nextBtn = document.getElementById("nextBtn");
@@ -165,62 +144,41 @@
       e.preventDefault();
       const inputVal = keywordInput.value.trim();
       if (!inputVal) return;
-      
       currentKeyword = inputVal;
       currentPage = 1;
       await runSearch();
     });
 
     prevBtn.addEventListener("click", async () => {
-      if (currentPage > 1) {
-        currentPage--;
-        await runSearch();
-      }
+      if (currentPage > 1) { currentPage--; await runSearch(); }
     });
 
     nextBtn.addEventListener("click", async () => {
-      currentPage++;
-      await runSearch();
+      currentPage++; await runSearch();
     });
 
     async function runSearch() {
       showLoading(true);
       try {
         const data = await fetchAnalysis(currentPage);
-        if (data) {
-          renderDashboard(data);
-        }
+        if (data) renderDashboard(data);
       } catch (err) {
-        console.error("동작 실패:", err);
+        console.error(err);
       } finally {
         showLoading(false);
       }
     }
 
-  async function fetchAnalysis(page) {
+    async function fetchAnalysis(page) {
       try {
-        // 불필요한 헤더나 한글 특수문자가 섞이지 않도록 Content-Type만 깔끔하게 명시합니다.
         const res = await fetch(`${API_BASE}/crawl`, {
           method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ 
-            keyword: currentKeyword, 
-            max_articles: 6, 
-            page: page 
-          })
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ keyword: currentKeyword, max_articles: 6, page: page })
         });
 
-        if (res.status === 429) {
-          throw new Error("과도한 요청이 발생했습니다. 1분 뒤에 다시 시도해 주세요.");
-        }
-        
-        if (!res.ok) {
-          const errorText = await res.text();
-          throw new Error(`서버 에러 (${res.status}): ${errorText}`);
-        }
-        
+        if (res.status === 429) throw new Error("분당 요청 횟수를 초과했습니다. 잠시 후 다시 시도해 주세요.");
+        if (!res.ok) throw new Error(`서버 에러가 발생했습니다. (${res.status})`);
         return await res.json();
       } catch (err) {
         alert(err.message);
@@ -232,82 +190,120 @@
       if (isLoading) {
         loadingState.classList.remove("hidden");
         resultDashboard.classList.add("hidden");
+        window.scrollTo({ top: loadingState.offsetTop - 100, behavior: 'smooth' });
       } else {
         loadingState.classList.add("hidden");
       }
     }
 
-    // 3. UI 렌더링 기능 (데이터 필드 교정 완료)
+    // 💡 핵심 렌더링 개편 함수: 기사를 키워드/문제점 기준으로 매핑하여 분류 정렬
     function renderDashboard(data) {
-      if (!data) {
-        alert("백엔드로부터 전달받은 데이터가 없습니다.");
-        return;
-      }
-
+      if (!data) return;
       resultDashboard.classList.remove("hidden");
+      resultTitle.innerHTML = `"${data.keyword || currentKeyword}" <span class="font-normal text-gray-400 text-lg">이슈 리포트</span>`;
       
-      const keyword = data.keyword || currentKeyword || "알 수 없음";
-      resultTitle.innerHTML = `"${keyword}" <span class="font-normal text-slate-500 text-lg">에 대한 분석</span>`;
-      
-      // AI 데이터 포맷 안전 가드 적용
-      let rawAnalysis = "";
-      if (typeof data.analysis === "object" && data.analysis !== null) {
-        rawAnalysis = data.analysis.text || data.analysis.content || JSON.stringify(data.analysis);
-      } else {
-        rawAnalysis = data.analysis || "AI 요약 결과를 가져오지 못했습니다.";
-      }
-      
+      // 요약 구문 세팅
+      let rawAnalysis = typeof data.analysis === "object" && data.analysis !== null
+        ? data.analysis.text || data.analysis.content || JSON.stringify(data.analysis)
+        : data.analysis || "분석 결과를 생성하지 못했습니다.";
       aiAnalysis.innerHTML = formatMarkdown(rawAnalysis);
-      pageIndicator.textContent = `${currentPage} / ${currentPage + 1}`;
+      
+      pageIndicator.textContent = `${currentPage} 묶음`;
       prevBtn.disabled = currentPage === 1;
 
-      newsGrid.innerHTML = "";
+      categoryContainer.innerHTML = "";
       const articles = data.articles || [];
-      
+
       if (articles.length === 0) {
-        newsGrid.innerHTML = `<div class="col-span-full py-8 text-center text-slate-400 text-sm">수집된 기사가 없습니다.</div>`;
+        categoryContainer.innerHTML = `<div class="bg-white border rounded-2xl py-12 text-center text-gray-400 text-sm shadow-sm">매칭된 뉴스 기사가 존재하지 않습니다.</div>`;
         return;
       }
 
+      // 1. 분류 알고리즘 가동: 기사의 제목/본문 키워드를 파싱하여 그룹 정의
+      const categories = {
+        "제도 및 법적 취약점": [],
+        "사회적·경제적 파장 피해": [],
+        "기타 일반 쟁점 동향": []
+      };
+
+      // 기사 키워드 기반 분류 매핑 규칙 설정
       articles.forEach(art => {
         if (!art) return;
+        const text = (art.title + " " + art.summary).toLowerCase();
         
-        // ✅ 백엔드 news.py 구조 명칭과 매칭 연동 수정 완료 (source -> press / link -> url / published -> date)
-        const press = art.source || '언론사 정보 없음';
-        const dateStr = art.published || '일자 미상';
-        const title = art.title || '제목 없음';
-        const url = art.link || '#';
-        const summary = art.summary || '본문 요약 정보가 존재하지 않습니다.';
+        if (text.includes("법") || text.includes("제도") || text.includes("정부") || text.includes("규제") || text.includes("대책") || text.includes("정책")) {
+          categories["제도 및 법적 취약점"].push(art);
+        } else if (text.includes("피해") || text.includes("우려") || text.includes("갈등") || text.includes("논란") || text.includes("심각") || text.includes("비용")) {
+          categories["사회적·경제적 파장 피해"].push(art);
+        } else {
+          categories["기타 일반 쟁점 동향"].push(art);
+        }
+      });
 
-        const card = document.createElement("div");
-        card.className = "bg-white border border-slate-200 rounded-2xl p-5 hover:shadow-md transition-all flex flex-col justify-between";
+      // 2. 가독성을 대폭 향상시킨 그룹별 카드 컴포넌트 동적 렌더링
+      Object.keys(categories).forEach(catName => {
+        const list = categories[catName];
+        if (list.length === 0) return; // 비어있는 그룹은 화면 공간 낭비를 막기 위해 생략
+
+        // 분류 대분록 박스 생성
+        const catSection = document.createElement("div");
+        catSection.className = "bg-white border border-gray-200 rounded-2xl p-6 shadow-sm";
         
-        card.innerHTML = `
-          <div>
-            <div class="flex items-center justify-between text-xs text-slate-400 mb-2">
-              <span class="font-semibold text-slate-600 px-2 py-0.5 bg-slate-100 rounded">${press}</span>
-              <span>${dateStr}</span>
-            </div>
-            <h4 class="font-bold text-slate-900 mb-2 line-clamp-2 hover:text-indigo-600 transition-colors">
-              <a href="${url}" target="_blank" rel="noopener noreferrer">${title}</a>
+        // 카테고리 헤더 타이틀 지정
+        let iconHtml = `<i class="fa-solid fa-circle-exclamation text-amber-500 mr-2"></i>`;
+        if (catName === "제도 및 법적 취약점") iconHtml = `<i class="fa-solid fa-gavel text-indigo-600 mr-2"></i>`;
+        if (catName === "사회적·경제적 파장 피해") iconHtml = `<i class="fa-solid fa-triangle-exclamation text-rose-500 mr-2"></i>`;
+
+        catSection.innerHTML = `
+          <div class="border-b border-gray-100 pb-3 mb-4">
+            <h4 class="text-md font-bold text-gray-900 flex items-center">
+              ${iconHtml} ${catName} <span class="ml-2 text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">${list.length}</span>
             </h4>
-            <p class="text-slate-500 text-xs leading-relaxed line-clamp-3 mb-4">${summary}</p>
           </div>
-          <a href="${url}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center text-xs font-semibold text-indigo-600 hover:text-indigo-700 hover:underline mt-2">
-            <span>기사 원문 보기</span>
-            <i class="fa-solid fa-arrow-up-right-from-square ml-1 text-[10px]"></i>
-          </a>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="grid-${catName.replace(/ /g, '')}"></div>
         `;
-        newsGrid.appendChild(card);
+        
+        categoryContainer.appendChild(catSection);
+        const gridElement = document.getElementById(`grid-${catName.replace(/ /g, '')}`);
+
+        // 내부 기사 카드 주입
+        list.forEach(art => {
+          const press = art.source || '언론사 정보 미지정';
+          const dateStr = art.published || '일자 미상';
+          const title = art.title || '제목 없음';
+          const url = art.link || '#';
+          const summary = art.summary || '기사 본문 요약 데이터가 존재하지 않습니다.';
+
+          const card = document.createElement("div");
+          card.className = "bg-slate-50 border border-gray-200 rounded-xl p-4 hover:bg-white hover:border-indigo-300 hover:shadow-sm transition-all flex flex-col justify-between";
+          card.innerHTML = `
+            <div>
+              <div class="flex items-center justify-between text-xs text-gray-400 mb-2">
+                <span class="font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">${press}</span>
+                <span>${dateStr}</span>
+              </div>
+              <h5 class="font-bold text-gray-900 mb-2 text-sm line-clamp-2 hover:text-indigo-600 transition-colors">
+                <a href="${url}" target="_blank" rel="noopener noreferrer">${title}</a>
+              </h5>
+              <p class="text-gray-500 text-xs leading-relaxed line-clamp-3 mb-3">${summary}</p>
+            </div>
+            <div class="flex items-center justify-between pt-2 border-t border-gray-200 border-dashed mt-2">
+              <a href="${url}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center text-xs font-semibold text-gray-600 hover:text-indigo-600 transition-all">
+                <span>기사 출처 이동</span> <i class="fa-solid fa-arrow-up-right-from-square ml-1 text-[9px]"></i>
+              </a>
+            </div>
+          `;
+          gridElement.appendChild(card);
+        });
       });
     }
 
     function formatMarkdown(text) {
-      if (!text) return "분석 데이터가 존재하지 않습니다.";
+      if (!text) return "";
       return text
-        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-        .replace(/\*(.*?)\*/g, '<em>$1</em>')
-        .replace(/^- (.*$)/gim, '<li class="ml-4 list-disc">$1</li>')
+        .replace(/\*\*(.*?)\*\*/g, '<strong class="text-indigo-600 font-bold">$1</strong>')
+        .replace(/\*(.*?)\*/g, '<em class="text-gray-800">$1</em>')
+        .replace(/^- (.*$)/gim, '<div class="flex items-start space-x-2 my-1"><span class="text-indigo-500 mt-1.5 text-xs">•</span><span class="flex-1">$1</span></div>')
         .replace(/\n/g, '<br>');
     }
   </script>
