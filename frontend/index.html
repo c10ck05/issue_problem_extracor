@@ -526,24 +526,34 @@ function renderCategories(data, isAppend = false) {
 }
 
 async function fetchAnalysis(page) {
-  // 브라우저는 비밀키 탑재 없이 Pages 호스트에게만 얌전하게 요청을 전달합니다.
-  const res = await fetch(API_BASE, {
-    method: 'POST',
-    headers: { 
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ 
-      keyword: currentKeyword, 
-      max_articles: 6,
-      page: page
-    })
-  });
+  try {
+    console.log("요청 보낼 주소(API_BASE):", API_BASE);
+    
+    const res = await fetch(API_BASE, {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ 
+        keyword: currentKeyword, 
+        max_articles: 6,
+        page: page
+      })
+    });
 
-  if (!res.ok) {
-    const errBody = await res.json().catch(() => ({}));
-    throw new Error(errBody.detail || `오류 발생 (${res.status})`);
+    if (!res.ok) {
+      // 405, 500 등의 에러가 발생하면 서버가 보낸 구체적인 에러 텍스트를 출력합니다.
+      const errorText = await res.text();
+      throw new Error(`서버 응답 에러 (${res.status}): ${errorText}`);
+    }
+
+    const data = await res.json();
+    return data;
+
+  } catch (err) {
+    console.error("fetchAnalysis 실행 중 에러 발생:", err);
+    alert(`요청 실패: ${err.message}`);
   }
-  return await res.json();
 }
 
 async function startNewAnalysis() {
