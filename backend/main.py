@@ -21,7 +21,7 @@ client = OpenAI(
 
 MODEL = "openai/gpt-oss-120b"
 
-app = FastAPI(title="Problem Extractor - Secure Backend")
+app = FastAPI(title="Problem Extractor - Secure Backend", redirect_slashes=False)
 
 # --------------------------------------------------
 # 🔒 보안 및 CORS 설정 (Pages 프록시와 로컬 환경만 허용)
@@ -115,12 +115,12 @@ def parse_safely(raw_str: str) -> dict:
 # --------------------------------------------------
 # 🚀 안전 강화된 API 크롤링 라우트
 # --------------------------------------------------
-@app.post("/crawl", response_model=CrawlResponse, redirect_slashes=False)
-@app.post("/crawl/", response_model=CrawlResponse, include_in_schema=False)
+@app.post("/crawl", response_model=CrawlResponse)
 async def crawl(
     req: CrawlRequest, 
-    token: str = Depends(verify_access_token) # 의존성 필터로 프록시 이외의 직접 호출 완전 통제
+    token: str = Depends(verify_access_token)
 ):
+    # (내부 함수 내용은 그대로 유지)
     keyword = req.keyword.strip()
     if not keyword:
         raise HTTPException(status_code=400, detail="키워드 입력이 필요합니다.")
