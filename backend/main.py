@@ -35,21 +35,20 @@ app = FastAPI(redirect_slashes=False)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-# ✅ 2. CORS 도메인 잠금 (보안 핵심)
-# "*" 대신 실제 접속을 허용할 프론트엔드 주소만 적어줍니다.
+# ✅ CORS 도메인 잠금 수정 (실제 사용하는 도메인 등록)
 origins = [
     "http://localhost:5500",
     "http://127.0.0.1:5500",
     "http://localhost:8000",
     "http://127.0.0.1:8000",
-    # "https://내-클라우드플레어-페이지-주소.pages.dev" ◀ 배포 후 여기에 프론트 주소 꼭 추가하세요!
+    "https://issue-tracker.hyunjae.co.kr",  # ◀ 실제 프론트엔드 주소 추가 완료!
 ]
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins, 
     allow_credentials=True,
-    allow_methods=["POST", "GET"], # 필요한 메서드만 허용
+    allow_methods=["POST", "GET", "OPTIONS"], # OPTIONS 메서드 명시
     allow_headers=["*"],
 )
 
