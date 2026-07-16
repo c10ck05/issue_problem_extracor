@@ -1,7 +1,7 @@
 fastapi
-uvicorn
-pydantic
+uvicorn[standard]
 openai
+pydantic
 python-dotenv
 requests
 slowapi

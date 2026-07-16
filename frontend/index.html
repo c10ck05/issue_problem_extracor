@@ -357,13 +357,13 @@
 
     .news-grid {
       display: grid;
-      grid-template-cols: 1fr;
+      grid-template-columns: 1fr;
       gap: 16px;
     }
 
     @media (min-width: 768px) {
       .news-grid {
-        grid-template-cols: 1fr 1fr;
+        grid-template-columns: 1fr 1fr;
       }
     }
 
@@ -447,6 +447,73 @@
 
     .news-link:hover {
       color: #4f46e5;
+    }
+
+    /* 문제점 카드 (AI가 추출한 problem 단위) */
+    .problem-card {
+      background-color: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 20px;
+      transition: all 0.2s;
+    }
+
+    .problem-card:hover {
+      background-color: #ffffff;
+      border-color: #a5b4fc;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    }
+
+    .problem-title {
+      font-size: 0.9375rem;
+      font-weight: 700;
+      color: #0f172a;
+      margin-bottom: 6px;
+    }
+
+    .problem-desc {
+      font-size: 0.8125rem;
+      color: #475569;
+      line-height: 1.6;
+      margin-bottom: 14px;
+    }
+
+    .source-chip-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      border-top: 1px dashed #e2e8f0;
+      padding-top: 12px;
+    }
+
+    .source-chip {
+      font-size: 0.6875rem;
+      font-weight: 600;
+      color: #64748b;
+      background-color: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 4px 10px;
+      text-decoration: none;
+      max-width: 220px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .source-chip:hover {
+      border-color: #4f46e5;
+      color: #4f46e5;
+    }
+
+    .empty-state {
+      background-color: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 48px;
+      text-align: center;
+      color: #94a3b8;
+      font-size: 0.875rem;
     }
 
     /* 푸터 */
@@ -554,10 +621,24 @@
     const resultTitle = document.getElementById("resultTitle");
     const aiAnalysis = document.getElementById("aiAnalysis");
     const categoryContainer = document.getElementById("categoryContainer");
-    
+
     const prevBtn = document.getElementById("prevBtn");
     const nextBtn = document.getElementById("nextBtn");
     const pageIndicator = document.getElementById("pageIndicator");
+
+    // ---------------------------------------------------------
+    // 외부(뉴스) 데이터를 HTML에 꽂기 전 항상 이스케이프한다.
+    // 제목/요약/언론사명은 신뢰할 수 없는 외부 입력이므로 XSS 방지 필수.
+    // ---------------------------------------------------------
+    function escapeHtml(str) {
+      const div = document.createElement("div");
+      div.textContent = str ?? "";
+      return div.innerHTML;
+    }
+
+    function escapeAttr(str) {
+      return escapeHtml(str).replace(/"/g, "&quot;");
+    }
 
     searchForm.addEventListener("submit", async (e) => {
       e.preventDefault();
@@ -593,11 +674,17 @@
         const res = await fetch(`${API_BASE}/crawl`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ keyword: currentKeyword, max_articles: 6, page: page })
+          body: JSON.stringify({ keyword: currentKeyword, max_articles: 6, page })
         });
 
-        if (res.status === 429) throw new Error("분당 요청 횟수를 초과했습니다. 잠시 후 다시 시도해 주세요.");
-        if (!res.ok) throw new Error(`서버 에러가 발생했습니다. (${res.status})`);
+        if (res.status === 429) {
+          const body = await res.json().catch(() => ({}));
+          throw new Error(body.detail || "분당 요청 횟수를 초과했습니다. 잠시 후 다시 시도해 주세요.");
+        }
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          throw new Error(body.detail || `서버 에러가 발생했습니다. (${res.status})`);
+        }
         return await res.json();
       } catch (err) {
         alert(err.message);
@@ -618,104 +705,68 @@
     function renderDashboard(data) {
       if (!data) return;
       resultDashboard.style.display = "block";
-      resultTitle.innerHTML = `"${data.keyword || currentKeyword}" <span>이슈 리포트</span>`;
-      
-      let rawAnalysis = typeof data.analysis === "object" && data.analysis !== null
-        ? data.analysis.text || data.analysis.content || JSON.stringify(data.analysis)
-        : data.analysis || "분석 결과를 생성하지 못했습니다.";
-      aiAnalysis.innerHTML = formatMarkdown(rawAnalysis);
-      
+      resultTitle.innerHTML = `"${escapeHtml(data.keyword || currentKeyword)}" <span>이슈 리포트</span>`;
+
+      const categories = data.categories || [];
+      const totalProblems = categories.reduce((sum, c) => sum + (c.problems || []).length, 0);
+
+      // AI 카테고리 요약 한 줄 (별도 호출 없이 결과에서 바로 합성)
+      if (categories.length === 0) {
+        aiAnalysis.innerHTML = "이번 묶음의 기사에서 뚜렷한 문제점을 추출하지 못했습니다.";
+      } else {
+        const line = categories
+          .map(c => `<strong>${escapeHtml(c.category)}</strong> ${c.problems.length}건`)
+          .join(' · ');
+        aiAnalysis.innerHTML = `이번 묶음(기사 ${data.articles.length}건)에서 ${categories.length}개 카테고리, 총 ${totalProblems}개 문제점을 발견했습니다.<br>${line}`;
+      }
+
       pageIndicator.textContent = `${currentPage} 묶음`;
       prevBtn.disabled = currentPage === 1;
+      nextBtn.disabled = !data.has_next;
 
       categoryContainer.innerHTML = "";
-      const articles = data.articles || [];
 
-      if (articles.length === 0) {
-        categoryContainer.innerHTML = `<div style="background-color: #fff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 48px; text-align: center; color: #94a3b8; font-size: 0.875rem;">매칭된 뉴스 기사가 존재하지 않습니다.</div>`;
+      if (categories.length === 0) {
+        categoryContainer.innerHTML = `<div class="empty-state">이번 묶음에서 분류된 문제점이 없습니다. 다음 묶음을 확인해보세요.</div>`;
         return;
       }
 
-      // 기사 카테고리 정의
-      const categories = {
-        "제도 및 법적 취약점": [],
-        "사회적·경제적 파장 피해": [],
-        "기타 일반 쟁점 동향": []
-      };
-
-      articles.forEach(art => {
-        if (!art) return;
-        const text = (art.title + " " + art.summary).toLowerCase();
-        
-        if (text.includes("법") || text.includes("제도") || text.includes("정부") || text.includes("규제") || text.includes("대책") || text.includes("정책")) {
-          categories["제도 및 법적 취약점"].push(art);
-        } else if (text.includes("피해") || text.includes("우려") || text.includes("갈등") || text.includes("논란") || text.includes("심각") || text.includes("비용")) {
-          categories["사회적·경제적 파장 피해"].push(art);
-        } else {
-          categories["기타 일반 쟁점 동향"].push(art);
-        }
-      });
-
-      Object.keys(categories).forEach(catName => {
-        const list = categories[catName];
-        if (list.length === 0) return;
-
+      categories.forEach((cat, catIdx) => {
         const catSection = document.createElement("div");
         catSection.className = "category-card";
-        
-        // 카테고리별 이모티콘 구분
-        let emoji = "⚠️";
-        if (catName === "제도 및 법적 취약점") emoji = "⚖️";
-        if (catName === "사회적·경제적 파장 피해") emoji = "🚨";
 
+        const catId = `grid-${catIdx}`;
         catSection.innerHTML = `
           <div class="category-header">
-            <span>${emoji}</span> 
-            <span>${catName}</span> 
-            <span class="category-badge">${list.length}</span>
+            <span>⚠️</span>
+            <span>${escapeHtml(cat.category)}</span>
+            <span class="category-badge">${cat.problems.length}</span>
           </div>
-          <div class="news-grid" id="grid-${catName.replace(/ /g, '')}"></div>
+          <div class="news-grid" id="${catId}"></div>
         `;
-        
-        categoryContainer.appendChild(catSection);
-        const gridElement = document.getElementById(`grid-${catName.replace(/ /g, '')}`);
 
-        list.forEach(art => {
-          const press = art.source || '언론사 없음';
-          const dateStr = art.published || '일자 미상';
-          const title = art.title || '제목 없음';
-          const url = art.link || '#';
-          const summary = art.summary || '요약 정보가 없습니다.';
+        categoryContainer.appendChild(catSection);
+        const gridElement = catSection.querySelector(`#${catId}`);
+
+        (cat.problems || []).forEach(problem => {
+          const sourceChips = (problem.sources || [])
+            .map(s => `
+              <a class="source-chip" href="${escapeAttr(s.link || '#')}" target="_blank" rel="noopener noreferrer" title="${escapeAttr(s.title || '')}">
+                ${escapeHtml(s.source || '출처')}
+              </a>
+            `)
+            .join('');
 
           const card = document.createElement("div");
-          card.className = "news-card";
+          card.className = "problem-card";
           card.innerHTML = `
-            <div>
-              <div class="news-meta">
-                <span class="press-badge">${press}</span>
-                <span>${dateStr}</span>
-              </div>
-              <h4 class="news-title">
-                <a href="${url}" target="_blank" rel="noopener noreferrer">${title}</a>
-              </h4>
-              <p class="news-desc">${summary}</p>
-            </div>
-            <a href="${url}" target="_blank" rel="noopener noreferrer" class="news-link">
-              <span>기사 출처 이동</span> ↗
-            </a>
+            <p class="problem-title">${escapeHtml(problem.title)}</p>
+            <p class="problem-desc">${escapeHtml(problem.description)}</p>
+            <div class="source-chip-row">${sourceChips}</div>
           `;
           gridElement.appendChild(card);
         });
       });
-    }
-
-    function formatMarkdown(text) {
-      if (!text) return "";
-      return text
-        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-        .replace(/\*(.*?)\*/g, '<em>$1</em>')
-        .replace(/^- (.*$)/gim, '<div style="margin: 6px 0; padding-left: 12px; border-left: 2px solid #818cf8;">$1</div>')
-        .replace(/\n/g, '<br>');
     }
   </script>
 </body>
