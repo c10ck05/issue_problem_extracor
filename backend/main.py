@@ -1,13 +1,13 @@
+import asyncio
 import json
 import os
-import time
 from typing import Optional
 
-import requests
+import httpx
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from openai import APIStatusError, OpenAI
+from openai import APIStatusError, AsyncOpenAI
 from pydantic import BaseModel, Field
 
 # ✅ 무지성 연타 방어용 rate limit
@@ -24,7 +24,8 @@ if not GROQ_API_KEY:
     raise RuntimeError("GROQ_API_KEY가 설정되지 않았습니다. .env 파일을 확인하세요.")
 
 # Groq은 OpenAI SDK와 완전히 호환된다 — base_url만 Groq 엔드포인트로 바꾸면 끝.
-client = OpenAI(api_key=GROQ_API_KEY, base_url="https://api.groq.com/openai/v1")
+# AsyncOpenAI를 써야 이벤트 루프를 블로킹하지 않고 여러 요청을 동시에 처리할 수 있다.
+client = AsyncOpenAI(api_key=GROQ_API_KEY, base_url="https://api.groq.com/openai/v1")
 
 # openai/gpt-oss-120b: Groq에서 JSON 모드를 공식 지원하는 프로덕션 모델.
 # 구형 llama-3.3-70b-versatile은 폐지 절차 중이라 사용하지 않음.
@@ -109,17 +110,18 @@ def _truncate(text: str, max_len: int) -> str:
     return text if len(text) <= max_len else text[: max_len - 1].rstrip() + "…"
 
 
-def _chat_json(prompt: str, max_retries: int = 3, max_tokens: Optional[int] = 1800) -> dict:
+async def _chat_json(prompt: str, max_retries: int = 3, max_tokens: Optional[int] = 1800) -> dict:
     """
     Groq(OpenAI 호환)를 JSON 모드로 호출하고 파싱한다.
     - 429(rate limit)는 지수 백오프로 재시도
     - max_tokens로 완성 길이를 제한해 TPM 한도 초과를 방지
     - 실패 원인을 절대 삼키지 않고 그대로 위로 올린다 (bare except 금지)
+    - 비동기 클라이언트를 써서 응답을 기다리는 동안 다른 요청을 막지 않는다
     """
     last_error: Exception = RuntimeError("알 수 없는 오류")
     for attempt in range(max_retries):
         try:
-            response = client.chat.completions.create(
+            response = await client.chat.completions.create(
                 model=MODEL,
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.2,
@@ -131,7 +133,7 @@ def _chat_json(prompt: str, max_retries: int = 3, max_tokens: Optional[int] = 18
         except APIStatusError as e:
             last_error = e
             if e.status_code == 429 and attempt < max_retries - 1:
-                time.sleep(2**attempt)
+                await asyncio.sleep(2**attempt)
                 continue
             raise
         except json.JSONDecodeError as e:
@@ -146,8 +148,8 @@ async def crawl(req: CrawlRequest, request: Request):
     keyword = req.keyword.strip()
 
     try:
-        all_articles = fetch_google_news(keyword, req.max_articles * req.page)
-    except requests.RequestException as e:
+        all_articles = await fetch_google_news(keyword, req.max_articles * req.page)
+    except httpx.HTTPError as e:
         raise HTTPException(status_code=502, detail=f"뉴스 검색 실패: {e}")
 
     start = (req.page - 1) * req.max_articles
@@ -169,7 +171,7 @@ async def crawl(req: CrawlRequest, request: Request):
     prompt = CATEGORIZE_PROMPT.format(keyword=keyword, headlines=headlines_block)
 
     try:
-        parsed = _chat_json(prompt)
+        parsed = await _chat_json(prompt)
     except APIStatusError as e:
         if e.status_code == 429:
             raise HTTPException(

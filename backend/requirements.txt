@@ -3,5 +3,5 @@ uvicorn[standard]
 openai
 pydantic
 python-dotenv
-requests
+httpx
 slowapi
